@@ -10,6 +10,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.wait import WebDriverWait
 
+from smbclient import open_file
+
 # Constants & config
 EAST_REN_BINS_URL = "https://www.eastrenfrewshire.gov.uk/bin-days"
 POST_CODE_ELEMENT_NAME = "RESIDUALWASTEV2_PAGE1_POSTCODE"
@@ -19,13 +21,15 @@ BIN_COLOUR_XPATH = "//span[@class='binColour']"
 BINS_CLASS = "bins"
 DUE_DATE_CLASS = "dueDate"
 DUE_DAY_CLASS = "dueDay"
-OUTPUT_FILE = "./output.json"
 
 # argparse
 parser = argparse.ArgumentParser(description='East Renfrewshire Bins Schedule')
 parser.add_argument('browser', type=str, help='Browser to use', choices=['safari', 'chrome', 'firefox'])
 parser.add_argument('post_code', type=str, help='Post Code to use')
 parser.add_argument('address', type=str, help='Address to use')
+parser.add_argument('--output', type=str, help='Output file location', default='./bins.json')
+parser.add_argument('--username', type=str, help='Output file location username', required=False)
+parser.add_argument('--password', type=str, help='Output file location password', required=False)
 
 args = parser.parse_args()
 
@@ -85,8 +89,12 @@ for colour in bin_colours:
     print(colour.text)
 
 bins = {'due': due, 'bins': [b.text for b in bin_colours]}
-with open(OUTPUT_FILE, "w") as file:
-    file.write(json.dumps(bins))
+if args.output.startswith("smb://"):
+    with open_file(args.output.strip('smb:'), mode="w", username=args.username, password=args.password) as file:
+        file.write(json.dumps(bins))
+else:
+    with open(args.output, "w") as file:
+        file.write(json.dumps(bins))
 
 # End
 driver.quit()
